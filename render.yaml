@@ -5,7 +5,10 @@ services:
     name: brew-channel
     runtime: node
     plan: free
-    buildCommand: corepack enable && pnpm install && pnpm build
+    # Render provides pnpm natively (do NOT run `corepack enable` — it tries to
+    # write a symlink into a read-only /usr/bin and fails). --prod=false keeps
+    # tsx/typescript (devDeps) so `pnpm start` (tsx src/index.ts) runs.
+    buildCommand: pnpm install --prod=false
     startCommand: pnpm start
     healthCheckPath: /healthz
     envVars:
