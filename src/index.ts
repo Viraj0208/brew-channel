@@ -65,7 +65,7 @@ function scheduleLifecycle(commId: string, channel: Channel, callbackUrl: string
           type: ev.type,
           occurred_at: new Date().toISOString(),
         },
-        { maxAttempts: CALLBACK_MAX_RETRIES },
+        { maxAttempts: CALLBACK_MAX_RETRIES, secret: process.env.WORKER_SECRET },
       );
     }, Math.round(ev.emitAtMs));
   }

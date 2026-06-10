@@ -13,6 +13,8 @@ export interface CallbackPayload {
 export interface CallbackOpts {
   maxAttempts?: number;
   baseDelayMs?: number;
+  /** Shared secret sent as x-worker-secret so the CRM can authenticate us. */
+  secret?: string;
   /** Injectable for tests; defaults to global fetch. */
   fetchFn?: typeof fetch;
   /** Injectable sleep for tests. */
@@ -34,9 +36,11 @@ export async function postCallback(
   let lastErr = "";
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
+      const headers: Record<string, string> = { "content-type": "application/json" };
+      if (opts.secret) headers["x-worker-secret"] = opts.secret;
       const res = await doFetch(url, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers,
         body: JSON.stringify(payload),
       });
       if (res.ok) return { ok: true, attempts: attempt };

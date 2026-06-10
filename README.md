@@ -23,7 +23,8 @@ so the CRM's idempotent, ordering-tolerant ingestion is exercised for real.
   later stage (`opened`) can emit before an earlier one (`delivered`). This drives
   the CRM's ordering test. Pure given an injected RNG → deterministic unit tests.
 - **Callbacks** (`src/callback.ts`) — `POST {callback_url}` with
-  `{ event_id, comm_id, type, occurred_at }`; non-2xx → exponential-backoff retry
+  `{ event_id, comm_id, type, occurred_at }`, signed with `x-worker-secret` so
+  the CRM can authenticate the webhook; non-2xx → exponential-backoff retry
   up to `CALLBACK_MAX_RETRIES`, then a channel-side dead log.
 - `GET /healthz` — liveness.
 
