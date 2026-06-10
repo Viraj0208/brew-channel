@@ -39,11 +39,16 @@ export function planForChannel(channel: Channel, rng: Rng): PlannedEvent[] {
  * one (delivered). This is the deliberate out-of-order behaviour the CRM state
  * machine must tolerate. Pure given `rng`. Returns events with absolute emit
  * delays, ascending.
+ *
+ * Default jitter is ±2000ms — deliberately wider than every adjacent stage gap
+ * in profiles.ts (whatsapp 1100ms, sms 2200–3000ms, email 2000–3500ms) so
+ * inversions actually occur on every channel (~26% per adjacent whatsapp pair,
+ * ~10% sms, ~1–12% email). At the old ±600ms only whatsapp could ever invert.
  */
 export function emissionSchedule(
   events: PlannedEvent[],
   rng: Rng,
-  jitterMs = 1200,
+  jitterMs = 4000,
 ): { type: EventType; emitAtMs: number }[] {
   return events
     .map((e) => ({
