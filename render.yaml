@@ -1,0 +1,14 @@
+# Render Blueprint — one-click config for the channel simulation service.
+# Render → New → Blueprint → connect this repo → it reads this file.
+services:
+  - type: web
+    name: brew-channel
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm install && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /healthz
+    envVars:
+      # Must equal the CRM's WORKER_SECRET so /send auth matches. Set at deploy.
+      - key: WORKER_SECRET
+        sync: false
