@@ -1,8 +1,6 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import { randomUUID } from "node:crypto";
-import { planForChannel, emissionSchedule } from "./simulate";
-import { postCallback } from "./callback";
+import { scheduleLifecycle } from "./scheduler";
 import type { Channel } from "./profiles";
 
 const app = new Hono();
@@ -10,7 +8,20 @@ const app = new Hono();
 // Channel-side idempotency: a comm_id is simulated at most once. The CRM uses
 // communication_id as the natural idempotency key, so a worker retry of an
 // already-accepted send must not start a second lifecycle.
+//
+// Bounded: Set iteration order is insertion order, so evicting the first entry
+// is FIFO. At this scope the cap is never hit; a real channel would use a
+// TTL'd store (Redis SETEX) — dedupe only needs to outlive the worker's retry
+// window, not all of history.
+const MAX_SEEN = 50_000;
 const seen = new Set<string>();
+function rememberComm(commId: string): void {
+  if (seen.size >= MAX_SEEN) {
+    const oldest = seen.values().next().value;
+    if (oldest !== undefined) seen.delete(oldest);
+  }
+  seen.add(commId);
+}
 
 const CHANNELS: Channel[] = ["whatsapp", "sms", "email"];
 
@@ -43,33 +54,11 @@ app.post("/send", async (c) => {
   if (seen.has(commId)) {
     return c.json({ accepted: true, comm_id: commId, duplicate: true }, 202);
   }
-  seen.add(commId);
+  rememberComm(commId);
 
   scheduleLifecycle(commId, channel, callbackUrl);
   return c.json({ accepted: true, comm_id: commId }, 202);
 });
-
-const CALLBACK_MAX_RETRIES = Number(process.env.CALLBACK_MAX_RETRIES ?? 4);
-
-function scheduleLifecycle(commId: string, channel: Channel, callbackUrl: string): void {
-  const plan = planForChannel(channel, Math.random);
-  const schedule = emissionSchedule(plan, Math.random);
-
-  for (const ev of schedule) {
-    setTimeout(() => {
-      void postCallback(
-        callbackUrl,
-        {
-          event_id: randomUUID(),
-          comm_id: commId,
-          type: ev.type,
-          occurred_at: new Date().toISOString(),
-        },
-        { maxAttempts: CALLBACK_MAX_RETRIES, secret: process.env.WORKER_SECRET },
-      );
-    }, Math.round(ev.emitAtMs));
-  }
-}
 
 const port = Number(process.env.PORT ?? 8080);
 serve({ fetch: app.fetch, port }, (info) => {

@@ -40,6 +40,9 @@ export async function postCallback(
       if (opts.secret) headers["x-worker-secret"] = opts.secret;
       const res = await doFetch(url, {
         method: "POST",
+        // A hung CRM must count as a failed attempt, not stall this lifecycle's
+        // retry loop forever. TimeoutError lands in the catch like any error.
+        signal: AbortSignal.timeout(5_000),
         headers,
         body: JSON.stringify(payload),
       });
