@@ -6,3 +6,7 @@ dist/
 # env files
 .env*
 !.env.example
+
+# AI-assistant context (kept local, not published)
+CLAUDE.md
+AGENTS.md
