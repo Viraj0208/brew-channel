@@ -1,7 +1,7 @@
 // Per-channel delivery profiles (§5.2). Probabilities + base delays drive the
 // simulated lifecycle. Delays are ms from accept; jitter is added at emit time.
 
-export type Channel = "whatsapp" | "sms" | "email";
+export type Channel = "whatsapp" | "sms" | "email" | "rcs";
 export type EventType = "delivered" | "failed" | "opened" | "read" | "clicked";
 
 export interface Stage {
@@ -41,6 +41,16 @@ export const PROFILES: Record<Channel, Profile> = {
       { type: "opened", p: 0.35, delayMs: 5000 },
       { type: "read", p: 0.25, delayMs: 7000 },
       { type: "clicked", p: 0.08, delayMs: 9000 },
+    ],
+  },
+  // RCS: rich + native to the phone's messaging app, with read receipts.
+  // Engagement sits between WhatsApp and SMS; fast like a native message.
+  rcs: {
+    stages: [
+      { type: "delivered", p: 0.96, delayMs: 600 },
+      { type: "opened", p: 0.6, delayMs: 2000 },
+      { type: "read", p: 0.45, delayMs: 3200 },
+      { type: "clicked", p: 0.18, delayMs: 5200 },
     ],
   },
 };
